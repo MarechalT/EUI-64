@@ -1,3 +1,4 @@
-#include <string>
 
-std::string getMAC(const std::string &interface);
+void getMAC(const std::string &interface, char* macaddr);
+void insertFFFE(char* macaddr);
+void flip7thbit(char* macaddr);

@@ -6,12 +6,13 @@
 #include <unistd.h> //close
 #include "eui-64.h"
 #include <iostream>
+#include <sstream>
+#include <bitset>
 
-std::string getMAC(const std::string &interface)
+void getMAC(const std::string &interface, char* macaddr)
 {
 	int fd;
 	struct ifreq ifr;
-	char* macaddr;
 
 	fd = socket(AF_INET, SOCK_DGRAM, 0);
 
@@ -20,9 +21,28 @@ std::string getMAC(const std::string &interface)
 	ioctl(fd, SIOCGIFHWADDR, &ifr);
 	close(fd);
 
-	macaddr = (char*) ifr.ifr_hwaddr.sa_data;
-	printf("HW Addr: %02X:%02X:%02X:%02X:%02X:%02X\n", macaddr[0], macaddr[1], macaddr[2], macaddr[3], macaddr[4], macaddr[5]);
+	memcpy(macaddr,(char*) ifr.ifr_hwaddr.sa_data,6);
+	return ;
+}
 
-	std::string a(macaddr);
-	return a;
+void insertFFFE(char* macaddr)
+{
+	char buffer[8]{'\0'};
+	memcpy(buffer,macaddr+7,7);
+	memcpy(macaddr+7,"FF:FE",5);
+	memcpy(macaddr+12,buffer,7);
+}
+
+void flip7thbit(char* macaddr) {
+	char val[2];
+	unsigned int value;
+	std::stringstream ss;
+	memcpy(val, macaddr, 2);
+	ss << val;
+	ss >> std::hex >> value;
+	std::bitset<8> firstbyte(value);
+	firstbyte.flip(6);
+	value = firstbyte.to_ulong();
+	sprintf(val, "%02X", value);
+	memcpy(macaddr, val, 2);
 }
