@@ -9,7 +9,7 @@
 #include <sstream>
 #include <bitset>
 
-void getMAC(const std::string &interface, char* macaddr)
+bool getMAC(const std::string &interface, char* macaddr)
 {
 	int fd;
 	struct ifreq ifr;
@@ -18,11 +18,14 @@ void getMAC(const std::string &interface, char* macaddr)
 
 	ifr.ifr_addr.sa_family = AF_INET;
 	strncpy((char*)ifr.ifr_name, (const char*)interface.c_str(), IFNAMSIZ-1);
-	ioctl(fd, SIOCGIFHWADDR, &ifr);
+	if (ioctl(fd, SIOCGIFHWADDR, &ifr) == -1)
+	{
+		return false;
+	}
 	close(fd);
 
 	memcpy(macaddr,(char*) ifr.ifr_hwaddr.sa_data,6);
-	return ;
+	return true;
 }
 
 void insertFFFE(char* macaddr)
@@ -34,15 +37,21 @@ void insertFFFE(char* macaddr)
 }
 
 void flip7thbit(char* macaddr) {
-	char val[2];
+	char val[3]{'\0'};
 	unsigned int value;
 	std::stringstream ss;
 	memcpy(val, macaddr, 2);
-	ss << val;
-	ss >> std::hex >> value;
+	ss << std::hex << val;
+	ss >> value;
 	std::bitset<8> firstbyte(value);
 	firstbyte.flip(6);
 	value = firstbyte.to_ulong();
 	sprintf(val, "%02X", value);
 	memcpy(macaddr, val, 2);
+}
+
+void macToEUI_64(char* buffer)
+{
+	insertFFFE(buffer);
+	flip7thbit(buffer);
 }
